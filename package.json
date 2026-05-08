@@ -24,6 +24,8 @@
 	},
 	"dependencies": {
 		"lucide-svelte": "^1.0.1",
-		"pocketbase": "^0.26.8"
+		"pocketbase": "^0.26.8",
+		"stripe": "^22.1.1",
+		"twilio": "^6.0.2"
 	}
 }
