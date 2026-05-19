@@ -1,19 +1,21 @@
 <script lang="ts">
-  import { LayoutDashboard, BookOpen, Users, Settings, LogOut, Menu } from 'lucide-svelte';
+  import { LayoutDashboard, BookOpen, Settings, LogOut, Menu, Sun, Moon, Globe } from 'lucide-svelte';
   import Button from '$lib/components/ui/Button.svelte';
   import { pb } from '$lib/pb';
   import { goto } from '$app/navigation';
+  import { theme } from '$lib/stores/theme';
+  import { locale, t } from '$lib/stores/locale';
 
   let { children, data } = $props();
   const user = $derived(data.user);
 
   let isMobileMenuOpen = $state(false);
 
-  const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'My Courses', href: '/courses', icon: BookOpen },
-    { name: 'Settings', href: '/settings', icon: Settings },
-  ];
+  const navigation = $derived([
+    { name: $t('nav.dashboard'), href: '/dashboard', icon: LayoutDashboard },
+    { name: $t('nav.courses'), href: '/courses', icon: BookOpen },
+    { name: $t('nav.settings'), href: '/settings', icon: Settings },
+  ]);
 
   const initials = $derived(
     user?.name
@@ -24,6 +26,10 @@
   async function logout() {
     pb.authStore.clear();
     goto('/login');
+  }
+
+  function toggleLocale() {
+    locale.update((v) => (v === 'en' ? 'es' : 'en'));
   }
 </script>
 
@@ -48,7 +54,7 @@
     </nav>
 
     <div class="p-4 border-t border-surface-800">
-      <div class="flex items-center gap-3 mb-4">
+      <div class="flex items-center gap-3 mb-3">
         <div class="w-10 h-10 rounded-full bg-brand-700 font-bold flex items-center justify-center shrink-0 text-sm">
           {initials}
         </div>
@@ -57,9 +63,34 @@
           <p class="text-xs text-surface-400 truncate">{user?.email || ''}</p>
         </div>
       </div>
+
+      <!-- Quick-action icons -->
+      <div class="flex items-center gap-1 mb-2">
+        <button
+          onclick={() => theme.toggle()}
+          title="Toggle theme"
+          class="flex items-center justify-center w-8 h-8 rounded-lg text-surface-400 hover:text-white hover:bg-surface-800 transition-colors"
+        >
+          {#if $theme === 'dark'}
+            <Sun size={16} />
+          {:else}
+            <Moon size={16} />
+          {/if}
+        </button>
+
+        <button
+          onclick={toggleLocale}
+          title="Toggle language"
+          class="flex items-center justify-center gap-1 h-8 px-2 rounded-lg text-surface-400 hover:text-white hover:bg-surface-800 transition-colors text-xs font-medium"
+        >
+          <Globe size={14} />
+          {$locale === 'en' ? 'ES' : 'EN'}
+        </button>
+      </div>
+
       <button onclick={logout} class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-surface-400 hover:text-white hover:bg-surface-800 transition-colors">
         <LogOut size={18} />
-        Log out
+        {$t('nav.logout')}
       </button>
     </div>
   </aside>
@@ -70,9 +101,30 @@
       <div class="w-8 h-8 rounded bg-brand-600 flex items-center justify-center text-white text-sm">W</div>
       CursosAI
     </div>
-    <button class="p-2 -mr-2 text-surface-600 dark:text-surface-300" onclick={() => isMobileMenuOpen = !isMobileMenuOpen}>
-      <Menu size={24} />
-    </button>
+    <div class="flex items-center gap-1">
+      <button
+        onclick={() => theme.toggle()}
+        class="p-2 text-surface-600 dark:text-surface-300"
+        title="Toggle theme"
+      >
+        {#if $theme === 'dark'}
+          <Sun size={20} />
+        {:else}
+          <Moon size={20} />
+        {/if}
+      </button>
+      <button
+        onclick={toggleLocale}
+        class="p-2 text-surface-600 dark:text-surface-300 text-xs font-medium flex items-center gap-1"
+        title="Toggle language"
+      >
+        <Globe size={18} />
+        {$locale === 'en' ? 'ES' : 'EN'}
+      </button>
+      <button class="p-2 -mr-2 text-surface-600 dark:text-surface-300" onclick={() => isMobileMenuOpen = !isMobileMenuOpen}>
+        <Menu size={24} />
+      </button>
+    </div>
   </header>
 
   <!-- Mobile menu -->
@@ -87,7 +139,7 @@
       {/each}
       <button onclick={logout} class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-surface-400 hover:text-white hover:bg-surface-800">
         <LogOut size={18} />
-        Log out
+        {$t('nav.logout')}
       </button>
     </div>
   {/if}

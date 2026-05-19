@@ -1,9 +1,10 @@
 <script lang="ts">
   import { CheckCircle, MessageSquare } from 'lucide-svelte';
+  import { t } from '$lib/stores/locale';
 </script>
 
 <svelte:head>
-  <title>You're enrolled!</title>
+  <title>{$t('success.heading')}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gradient-to-br from-surface-50 to-brand-50 dark:from-surface-950 dark:to-brand-950 flex items-center justify-center p-4">
@@ -12,9 +13,9 @@
       <CheckCircle size={40} class="text-green-500" />
     </div>
 
-    <h1 class="text-3xl font-bold mb-3">You're enrolled!</h1>
+    <h1 class="text-3xl font-bold mb-3">{$t('success.heading')}</h1>
     <p class="text-surface-500 dark:text-surface-400 mb-8 max-w-sm mx-auto">
-      Check your WhatsApp — your first message is on its way. Each day you'll receive the next step automatically.
+      {$t('success.description')}
     </p>
 
     <div class="bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-800 rounded-2xl p-6 text-left">
@@ -23,19 +24,19 @@
           <MessageSquare size={20} class="text-white" />
         </div>
         <div>
-          <p class="text-xs text-surface-400">WhatsApp</p>
-          <p class="text-sm font-medium">Your first message is being sent...</p>
+          <p class="text-xs text-surface-400">{$t('success.whatsappLabel')}</p>
+          <p class="text-sm font-medium">{$t('success.firstMessage')}</p>
         </div>
       </div>
       <div class="bg-green-50 dark:bg-green-900/20 rounded-xl p-3">
         <p class="text-sm text-green-800 dark:text-green-200">
-          Welcome to the course! Your journey starts now. 🎉
+          {$t('success.welcome')}
         </p>
       </div>
     </div>
 
     <p class="text-xs text-surface-400 mt-6">
-      Didn't get a message? Make sure you have WhatsApp installed and your number was entered correctly.
+      {$t('success.didntGet')}
     </p>
   </div>
 </div>

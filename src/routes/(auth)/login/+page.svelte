@@ -5,6 +5,7 @@
   import { pb } from '$lib/pb';
   import { goto } from '$app/navigation';
   import { Mail, Lock, Loader2, ArrowRight } from 'lucide-svelte';
+  import { t } from '$lib/stores/locale';
 
   let email = $state('');
   let password = $state('');
@@ -19,7 +20,7 @@
       await pb.collection('users').authWithPassword(email, password);
       goto('/dashboard');
     } catch (err: any) {
-      error = err?.response?.message || err?.message || 'Invalid email or password';
+      error = err?.response?.message || err?.message || $t('login.errorFallback');
     } finally {
       loading = false;
     }
@@ -31,8 +32,8 @@
 </svelte:head>
 
 <div class="mb-8">
-  <h1 class="text-3xl font-bold mb-2">Welcome back</h1>
-  <p class="text-surface-500 dark:text-surface-400">Enter your credentials to access your workspace</p>
+  <h1 class="text-3xl font-bold mb-2">{$t('login.heading')}</h1>
+  <p class="text-surface-500 dark:text-surface-400">{$t('login.subheading')}</p>
 </div>
 
 {#if error}
@@ -43,53 +44,39 @@
 
 <form onsubmit={handleSubmit} class="space-y-5">
   <div class="space-y-2">
-    <Label for="email">Email</Label>
+    <Label for="email">{$t('login.email')}</Label>
     <div class="relative">
       <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-surface-400">
         <Mail size={18} />
       </div>
-      <Input
-        id="email"
-        type="email"
-        placeholder="you@example.com"
-        bind:value={email}
-        required
-        class="pl-10"
-      />
+      <Input id="email" type="email" placeholder={$t('login.emailPlaceholder')} bind:value={email} required class="pl-10" />
     </div>
   </div>
 
   <div class="space-y-2">
-    <Label for="password">Password</Label>
+    <Label for="password">{$t('login.password')}</Label>
     <div class="relative">
       <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-surface-400">
         <Lock size={18} />
       </div>
-      <Input
-        id="password"
-        type="password"
-        placeholder="••••••••"
-        bind:value={password}
-        required
-        class="pl-10"
-      />
+      <Input id="password" type="password" placeholder={$t('login.passwordPlaceholder')} bind:value={password} required class="pl-10" />
     </div>
   </div>
 
   <Button type="submit" class="w-full mt-2" disabled={loading}>
     {#if loading}
       <Loader2 class="mr-2 h-4 w-4 animate-spin" />
-      Signing in...
+      {$t('login.signing')}
     {:else}
-      Sign In
+      {$t('login.submit')}
       <ArrowRight class="ml-2 h-4 w-4" />
     {/if}
   </Button>
 </form>
 
 <div class="mt-8 text-center text-sm text-surface-500 dark:text-surface-400">
-  Don't have an account?
+  {$t('login.noAccount')}
   <a href="/register" class="font-medium text-brand-600 hover:text-brand-500 dark:text-brand-400 dark:hover:text-brand-300 transition-colors">
-    Create one
+    {$t('login.create')}
   </a>
 </div>

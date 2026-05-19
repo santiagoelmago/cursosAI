@@ -6,6 +6,10 @@
 		<meta name="text-scale" content="scale" />
 		%sveltekit.head%
 	</head>
+	<script>
+		const t = localStorage.getItem('theme') ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+		if (t === 'dark') document.documentElement.classList.add('dark');
+	</script>
 	<body data-sveltekit-preload-data="hover">
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>

@@ -1,28 +1,21 @@
 <script lang="ts">
   import Button from '$lib/components/ui/Button.svelte';
-  import Label from '$lib/components/ui/Label.svelte';
   import { Briefcase, Activity, Code, Megaphone, ArrowRight, CheckCircle2 } from 'lucide-svelte';
+  import { t } from '$lib/stores/locale';
 
   let step = $state(1);
   let selectedRole = $state('');
-  
-  const roles = [
-    { id: 'hr', title: 'Human Resources', description: 'Recruitment, employee engagement, policies', icon: Briefcase },
-    { id: 'sales', title: 'Sales & Marketing', description: 'Outreach, copywriting, lead scoring', icon: Megaphone },
-    { id: 'ops', title: 'Operations', description: 'Logistics, process optimization, planning', icon: Activity },
-    { id: 'engineering', title: 'Engineering', description: 'Code review, architecture, debugging', icon: Code },
-  ];
 
-  function handleRoleSelect(roleId: string) {
-    selectedRole = roleId;
-  }
+  const roles = $derived([
+    { id: 'hr',          title: $t('onboarding.hrTitle'),    description: $t('onboarding.hrDesc'),    icon: Briefcase },
+    { id: 'sales',       title: $t('onboarding.salesTitle'), description: $t('onboarding.salesDesc'), icon: Megaphone },
+    { id: 'ops',         title: $t('onboarding.opsTitle'),   description: $t('onboarding.opsDesc'),   icon: Activity  },
+    { id: 'engineering', title: $t('onboarding.engTitle'),   description: $t('onboarding.engDesc'),   icon: Code      },
+  ]);
 
   function nextStep() {
     if (step < 2) step++;
-    else {
-      // finish onboarding
-      window.location.href = '/dashboard';
-    }
+    else window.location.href = '/dashboard';
   }
 </script>
 
@@ -32,24 +25,18 @@
 
 <div class="mb-8 text-center animate-fade-in-up">
   <div class="flex items-center justify-center gap-2 text-surface-400 mb-6 font-medium text-sm">
-    <span class={step >= 1 ? "text-brand-500" : ""}>Role Setup</span>
-    <div class="w-8 h-[2px] bg-surface-200 dark:bg-surface-800"><div class="h-full bg-brand-500 transition-all" style="width: {step === 2 ? '100%' : '0%'}"></div></div>
-    <span class={step >= 2 ? "text-brand-500" : ""}>Personalization</span>
+    <span class={step >= 1 ? 'text-brand-500' : ''}>{$t('onboarding.step1')}</span>
+    <div class="w-8 h-[2px] bg-surface-200 dark:bg-surface-800">
+      <div class="h-full bg-brand-500 transition-all" style="width: {step === 2 ? '100%' : '0%'}"></div>
+    </div>
+    <span class={step >= 2 ? 'text-brand-500' : ''}>{$t('onboarding.step2')}</span>
   </div>
 
   <h1 class="text-3xl font-bold mb-2">
-    {#if step === 1}
-      What's your primary role?
-    {:else}
-      Let's customize your sandbox
-    {/if}
+    {step === 1 ? $t('onboarding.h1a') : $t('onboarding.h1b')}
   </h1>
   <p class="text-surface-500 dark:text-surface-400 max-w-sm mx-auto">
-    {#if step === 1}
-      We'll tailor your AI workflows and sandbox environment to your specific industry needs.
-    {:else}
-      Preparing the ultimate toolkit tailored for your daily workflows.
-    {/if}
+    {step === 1 ? $t('onboarding.desc1') : $t('onboarding.desc2')}
   </p>
 </div>
 
@@ -60,7 +47,7 @@
         {@const Icon = role.icon}
         <button
           class="flex items-start text-left p-4 rounded-xl border-2 transition-all {selectedRole === role.id ? 'border-brand-500 bg-brand-50 dark:bg-brand-500/10' : 'border-surface-200 dark:border-surface-800 hover:border-surface-300 dark:hover:border-surface-700 bg-surface-50 dark:bg-surface-900/50'}"
-          onclick={() => handleRoleSelect(role.id)}
+          onclick={() => selectedRole = role.id}
         >
           <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 mr-4 {selectedRole === role.id ? 'bg-brand-500 text-white' : 'bg-surface-200 dark:bg-surface-800 text-surface-500'}">
             <Icon size={20} />
@@ -79,7 +66,7 @@
     </div>
 
     <Button size="lg" class="w-full mt-6" disabled={!selectedRole} onclick={nextStep}>
-      Continue
+      {$t('onboarding.continue')}
       <ArrowRight class="ml-2 h-4 w-4" />
     </Button>
   </div>
@@ -89,17 +76,17 @@
       <div class="absolute inset-0 border-4 border-t-brand-500 border-brand-500/30 rounded-full animate-spin"></div>
       <Briefcase size={32} class="text-brand-500" />
     </div>
-    
+
     <div>
-      <h3 class="text-xl font-medium mb-2">Analyzing Role Requirements...</h3>
+      <h3 class="text-xl font-medium mb-2">{$t('onboarding.analyzingH')}</h3>
       <p class="text-surface-500 dark:text-surface-400 text-sm max-w-xs mx-auto">
-        Building custom prompt templates and workflow schemas for your specific job function.
+        {$t('onboarding.analyzingP')}
       </p>
     </div>
 
     <div class="pt-4">
       <Button onclick={nextStep} class="w-full" size="lg">
-        Go to Dashboard
+        {$t('onboarding.goDashboard')}
       </Button>
     </div>
   </div>
