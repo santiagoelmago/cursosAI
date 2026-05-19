@@ -17,23 +17,37 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		enrollments = result.items;
 	} catch {}
 
-	// For each enrollment, get message progress
 	const enrollmentIds = enrollments.map((e: any) => e.id);
-	const progressMap: Record<string, { total: number; sent: number; failed: number }> = {};
 
+	// Fetch full message logs (with step expand for message content)
+	const logsMap: Record<string, any[]> = {};
 	if (enrollmentIds.length > 0) {
 		try {
 			for (const id of enrollmentIds) {
 				const logs = await pb.collection('message_logs').getList(1, 200, {
-					filter: `enrollment = "${id}"`
+					filter: `enrollment = "${id}"`,
+					expand: 'step',
+					sort: 'scheduled_at'
 				});
-				const total = logs.totalItems;
-				const sent = logs.items.filter((l: any) => l.status === 'sent').length;
-				const failed = logs.items.filter((l: any) => l.status === 'failed').length;
-				progressMap[id] = { total, sent, failed };
+				logsMap[id] = logs.items;
 			}
 		} catch {}
 	}
 
-	return { course, enrollments, progressMap };
+	// Fetch replies
+	const responsesMap: Record<string, any[]> = {};
+	if (enrollmentIds.length > 0) {
+		try {
+			const result = await pb.collection('whatsapp_responses').getList(1, 500, {
+				filter: enrollmentIds.map((id) => `enrollment = "${id}"`).join(' || '),
+				sort: '-received_at'
+			});
+			for (const r of result.items) {
+				if (!responsesMap[r.enrollment]) responsesMap[r.enrollment] = [];
+				responsesMap[r.enrollment].push(r);
+			}
+		} catch {}
+	}
+
+	return { course, enrollments, logsMap, responsesMap };
 };

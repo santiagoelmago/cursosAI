@@ -66,7 +66,7 @@ export const actions: Actions = {
 				enrolled_at: new Date().toISOString()
 			});
 			// Schedule messages
-			await scheduleMessages(pb, enrollment.id, course.id, new Date());
+			await scheduleMessages(pb, enrollment.id, course, whatsapp_number, student_name, student_email, new Date());
 			redirect(302, `/enroll/${params.slug}/success?enrollment=${enrollment.id}`);
 		}
 
@@ -90,23 +90,60 @@ export const actions: Actions = {
 	}
 };
 
-async function scheduleMessages(pb: any, enrollmentId: string, courseId: string, enrolledAt: Date) {
+async function scheduleMessages(
+	pb: any,
+	enrollmentId: string,
+	course: any,
+	whatsappNumber: string,
+	studentName: string,
+	studentEmail: string,
+	enrolledAt: Date
+) {
 	let steps: any[] = [];
 	try {
 		const result = await pb.collection('steps').getList(1, 200, {
-			filter: `course = "${courseId}"`,
+			filter: `course = "${course.id}"`,
 			sort: 'order'
 		});
 		steps = result.items;
 	} catch {}
 
+	const baileysUrl = env.BAILEYS_SERVICE_URL || 'http://localhost:3001';
+	const firstName = studentName?.split(' ')[0] || studentName || '';
+
 	for (const step of steps) {
 		const scheduledAt = new Date(enrolledAt.getTime() + step.delay_hours * 60 * 60 * 1000);
-		await pb.collection('message_logs').create({
+		const log = await pb.collection('message_logs').create({
 			enrollment: enrollmentId,
 			step: step.id,
 			status: 'pending',
 			scheduled_at: scheduledAt.toISOString()
 		});
+
+		// Send immediately if delay is 0
+		if (step.delay_hours === 0) {
+			const message = step.message_body
+				.replace(/\{name\}/gi, firstName)
+				.replace(/\{full_name\}/gi, studentName || '')
+				.replace(/\{email\}/gi, studentEmail || '')
+				.replace(/\{course_name\}/gi, course.title || '');
+			try {
+				const res = await fetch(`${baileysUrl}/sessions/${course.creator}/send`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ to: whatsappNumber, message, mediaUrl: step.media_url || null })
+				});
+				const result = await res.json();
+				if (res.ok) {
+					await pb.collection('message_logs').update(log.id, {
+						status: 'sent',
+						sent_at: new Date().toISOString(),
+						twilio_sid: result.messageId
+					});
+				}
+			} catch {
+				// Non-fatal — cron will retry
+			}
+		}
 	}
 }

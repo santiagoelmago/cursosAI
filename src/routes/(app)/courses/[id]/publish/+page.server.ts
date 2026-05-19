@@ -28,22 +28,26 @@ export const actions: Actions = {
 		if (course.creator !== user.id) return fail(403, { error: 'Not your course' });
 
 		try {
-			const product = await stripe.products.create({
-				name: course.title,
-				description: course.description || undefined
-			});
+			if (course.price_cents) {
+				const product = await stripe.products.create({
+					name: course.title,
+					description: course.description || undefined
+				});
 
-			const price = await stripe.prices.create({
-				product: product.id,
-				unit_amount: course.price_cents || 0,
-				currency: course.currency || 'usd'
-			});
+				const price = await stripe.prices.create({
+					product: product.id,
+					unit_amount: course.price_cents,
+					currency: course.currency || 'usd'
+				});
 
-			await pb.collection('courses').update(params.id, {
-				stripe_product_id: product.id,
-				stripe_price_id: price.id,
-				status: 'published'
-			});
+				await pb.collection('courses').update(params.id, {
+					stripe_product_id: product.id,
+					stripe_price_id: price.id,
+					status: 'published'
+				});
+			} else {
+				await pb.collection('courses').update(params.id, { status: 'published' });
+			}
 		} catch (err: any) {
 			return fail(500, { error: err?.message || 'Failed to publish. Check your Stripe keys.' });
 		}

@@ -1,26 +1,24 @@
 import { json } from '@sveltejs/kit';
 import { getAdminPb } from '$lib/pocketbase-admin';
-import { twilioClient } from '$lib/twilio';
 import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 
+const BAILEYS_URL = env.BAILEYS_SERVICE_URL || 'http://localhost:3001';
+
 export const POST: RequestHandler = async ({ request }) => {
-	// Verify cron secret
 	const auth = request.headers.get('authorization');
-	const secret = env.CRON_SECRET;
-	if (!secret || auth !== `Bearer ${secret}`) {
+	if (!env.CRON_SECRET || auth !== `Bearer ${env.CRON_SECRET}`) {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
 
 	const pb = await getAdminPb();
 	const now = new Date().toISOString();
 
-	// Fetch pending messages that are due
 	let pendingLogs: any[] = [];
 	try {
 		const result = await pb.collection('message_logs').getList(1, 20, {
 			filter: `status = "pending" && scheduled_at <= "${now}"`,
-			expand: 'enrollment,step'
+			expand: 'enrollment,step,enrollment.course'
 		});
 		pendingLogs = result.items;
 	} catch (err) {
@@ -34,35 +32,48 @@ export const POST: RequestHandler = async ({ request }) => {
 	for (const log of pendingLogs) {
 		const enrollment = log.expand?.enrollment;
 		const step = log.expand?.step;
+		const course = log.expand?.enrollment?.expand?.course;
 
-		if (!enrollment || !step) continue;
+		if (!enrollment || !step || !course?.creator) continue;
 
-		const from = `whatsapp:${env.TWILIO_WHATSAPP_FROM || '+14155238886'}`;
-		const to = `whatsapp:${enrollment.whatsapp_number}`;
+		const userId = course.creator;
+
+		const firstName = enrollment.student_name?.split(' ')[0] || enrollment.student_name || '';
+		const message = step.message_body
+			.replace(/\{name\}/gi, firstName)
+			.replace(/\{full_name\}/gi, enrollment.student_name || '')
+			.replace(/\{email\}/gi, enrollment.student_email || '')
+			.replace(/\{course_name\}/gi, course.title || '');
 
 		try {
-			const messageOptions: any = {
-				from,
-				to,
-				body: step.message_body
-			};
-			if (step.media_url) {
-				messageOptions.mediaUrl = [step.media_url];
+			const res = await fetch(`${BAILEYS_URL}/sessions/${userId}/send`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					to: enrollment.whatsapp_number,
+					message,
+					mediaUrl: step.media_url || null
+				})
+			});
+
+			if (!res.ok) {
+				const err = await res.json().catch(() => ({}));
+				throw new Error(err.error || `Baileys error ${res.status}`);
 			}
 
-			const message = await twilioClient.messages.create(messageOptions);
+			const result = await res.json();
 
 			await pb.collection('message_logs').update(log.id, {
 				status: 'sent',
 				sent_at: new Date().toISOString(),
-				twilio_sid: message.sid
+				twilio_sid: result.messageId  // reusing field name for the message ID
 			});
 			sent++;
 		} catch (err: any) {
-			console.error(`Failed to send message log ${log.id}:`, err);
+			console.error(`Failed to send message log ${log.id}:`, err.message);
 			await pb.collection('message_logs').update(log.id, {
 				status: 'failed',
-				error_message: err?.message || 'Unknown Twilio error'
+				error_message: err?.message || 'Unknown error'
 			});
 			failed++;
 		}

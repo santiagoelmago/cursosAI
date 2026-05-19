@@ -26,13 +26,14 @@ export const actions: Actions = {
 		const description = (data.get('description') as string)?.trim();
 		const priceRaw = data.get('price') as string;
 		const slug = (data.get('slug') as string)?.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+		const community_enabled = data.get('community_enabled') === 'true';
 
 		if (!title) return fail(400, { error: 'Title is required' });
 
 		const price_cents = priceRaw ? Math.round(parseFloat(priceRaw) * 100) : 0;
 
 		try {
-			await pb.collection('courses').update(params.id, { title, description, slug, price_cents });
+			await pb.collection('courses').update(params.id, { title, description, slug, price_cents, community_enabled });
 		} catch (err: any) {
 			return fail(400, { error: err?.response?.message || 'Update failed' });
 		}
